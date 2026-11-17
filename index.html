@@ -15,7 +15,7 @@
 <meta name="happygift:test" content="off">
 <!-- ================= Ниже ничего не менять: приложение защищено от изменений и перестанет запускаться ================= -->
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-uv6nQzJ2JeW2UtElJmMxlqT/ThzhEKCmsIuVZWxAZMI=' https://telegram.org; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Xs4JWk9FV94qyHLxOy4e6sBSx2ZAAGH+7NOTCYiQTh0=' https://telegram.org; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Unbounded:wght@700&display=swap&subset=cyrillic" rel="stylesheet">
@@ -1852,7 +1852,7 @@ const IMG_RE = /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+\/]+=*$/;
 const IMG_MAX = 1500000;
 function isImg(v){ return typeof v === 'string' && v.length < IMG_MAX && IMG_RE.test(v); }
 function isObj(v){ return !!v && typeof v === 'object' && !Array.isArray(v); }
-function cStr(v, max){ return typeof v === 'string' ? v.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F‪-‮⁦-⁩]/g,'').slice(0, max) : ''; }
+function cStr(v, max){ return typeof v === 'string' ? v.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\u202A-\u202E\u2066-\u2069]/g,'').slice(0, max) : ''; }
 function cNum(v){ return typeof v === 'number' && isFinite(v) && v >= 0 ? v : 0; }
 function cInt(v, max){ return Number.isInteger(v) && v >= 0 ? Math.min(v, max) : 0; }
 function cPick(v, list){ return list.includes(v) ? v : ''; }
