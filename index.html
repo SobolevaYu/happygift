@@ -17,7 +17,7 @@
 <meta name="happygift:test" content="off">
 <!-- ================= Ниже ничего не менять: приложение защищено от изменений и перестанет запускаться ================= -->
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-5peEq7NUwJm9zoB/VNlqzVJGqdr+sJp/Z/z2J6Ncyuk=' https://telegram.org; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data:; connect-src https://functions.yandexcloud.net; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-02ArZIeKBP20nkHuTTP3TMSV5wGW5biH/IcEPwgMHo4=' https://telegram.org; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data:; connect-src https://functions.yandexcloud.net; base-uri 'none'; form-action 'none'; object-src 'none'">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Unbounded:wght@700&display=swap&subset=cyrillic" rel="stylesheet">
@@ -246,9 +246,9 @@ details.test summary{cursor:pointer;color:var(--mute);font-weight:700;font-size:
 .sp-flake{position:absolute;top:-12px;border-radius:50%;background:#fff;animation:spfall linear infinite;pointer-events:none}
 @keyframes spfall{to{transform:translate(24px,112vh)}}
 .sp-ground{position:absolute;left:0;right:0;bottom:0;width:100%;height:150px;display:block}
-.sp-run{position:absolute;left:0;bottom:66px;width:150px;height:170px;z-index:2;transform:translateX(-170px);animation:sprun 3.2s linear forwards}
+.sp-run{position:absolute;left:0;bottom:66px;width:150px;height:200px;z-index:2;transform:translateX(-170px);animation:sprun 3.2s linear forwards}
 @keyframes sprun{from{transform:translateX(-170px)}to{transform:translateX(100vw)}}
-.sp-run .ded{width:150px;height:170px;display:block;overflow:visible}
+.sp-run .ded{width:150px;height:200px;display:block;overflow:visible}
 /* прыжок: один прыжок = одна доля музыки (0,35 с), приземление совпадает с «шагом» в звуке */
 .ded .hop{transform-origin:78px 160px;animation:dhop .35s ease-in-out infinite;animation-delay:-.3s}
 @keyframes dhop{0%,100%{transform:translateY(0) scale(1.08,.9)}50%{transform:translateY(-16px) scale(.95,1.07)}}
@@ -271,7 +271,7 @@ details.test summary{cursor:pointer;color:var(--mute);font-weight:700;font-size:
 @keyframes darm{from{transform:rotate(10deg)}to{transform:rotate(-14deg)}}
 .ded .sackgift{animation:dgone .01s 1s forwards}
 @keyframes dgone{to{opacity:0}}
-.sp-say{position:absolute;left:92px;top:-18px;background:#fff;color:var(--burg);font-weight:800;font-size:13px;padding:6px 12px;border-radius:12px;white-space:nowrap;transform-origin:0 100%;opacity:0;animation:dsay 1.7s .3s both}
+.sp-say{position:absolute;left:112px;top:-16px;background:#fff;color:var(--burg);font-weight:800;font-size:13px;padding:6px 12px;border-radius:12px;white-space:nowrap;transform-origin:0 100%;opacity:0;animation:dsay 1.7s .3s both}
 .sp-say::after{content:"";position:absolute;left:12px;bottom:-6px;border:6px solid transparent;border-top-color:#fff;border-bottom:0}
 @keyframes dsay{0%{opacity:0;transform:scale(0)}9%{opacity:1;transform:scale(1.18)}15%{transform:scale(1)}82%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(.8) translateY(-6px)}}
 .sp-line{position:absolute;left:-26px;height:3px;border-radius:2px;background:rgba(255,255,255,.55);animation:dline .175s linear infinite}
@@ -1801,7 +1801,7 @@ function fadeAudio(){
 }
 
 /* ============ ЗАСТАВКА: HappyGift ============ */
-const DED_SVG = '<svg class="ded" viewBox="0 0 150 170" aria-hidden="true">'
+const DED_SVG = '<svg class="ded" viewBox="0 -30 150 200" aria-hidden="true">'
  + '<ellipse class="shadow" cx="78" cy="162" rx="34" ry="5" fill="#000"/>'
  + '<g class="hop">'
  + '<g class="legB"><rect x="65" y="130" width="11" height="20" rx="5.5" fill="#3E0A16"/><ellipse cx="69" cy="153" rx="11" ry="6.5" fill="#5C1327"/><rect x="59" y="146" width="21" height="5" rx="2.5" fill="#FFFFFF"/></g>'
@@ -1945,19 +1945,23 @@ const NET_ERR = {auth:'Не удалось подтвердить вход че�
   busy:'Сервер занят, попробуйте ещё раз.', profile:'Сначала заполните анкету.', agree:'Отметьте, что принимаете правила сервиса.', locked:'Данные закрыты, менять их больше нельзя',
   nocode:'Группа с таким кодом не найдена. Проверьте код.', drawn:'В этой группе жеребьёвка уже прошла.', full:'В группе уже 100 участников.', strict:'Не получилось: правила слишком строгие',
   few:'Нужно хотя бы трое участников.', limit:'Можно создать не больше 20 групп.', image:'Подойдёт картинка JPG, PNG или WebP.', invalid:'Проверьте данные и попробуйте ещё раз.',
-  nogroup:'Это действие сейчас недоступно.', bad:'Что-то пошло не так. Обновите приложение.', net:'Нет связи с сервером. Проверьте интернет.'};
+  nogroup:'Это действие сейчас недоступно.', bad:'Что-то пошло не так. Обновите приложение.', net:'Нет связи с сервером. Проверьте интернет.',
+  timeout:'Сервер слишком долго не отвечает.', answer:'Сервер ответил с ошибкой.', js:'Ошибка в приложении.'};
 const netMsg = k => NET_ERR[k] || NET_ERR.bad;
 function tgInit(){ return (tg && typeof tg.initData === 'string') ? tg.initData : ''; }
 async function api(op, a){
   const pv = {};
   Object.keys(net.imgs).forEach(k => { const i = k.indexOf(':'), gid = k.slice(0, i), key = k.slice(i + 1); (pv[gid] = pv[gid] || {})[key] = net.imgs[k].v; });
-  let j;
+  let j, r;
+  const ctl = typeof AbortController === 'function' ? new AbortController() : null;
+  const tm = setTimeout(() => { if (ctl) ctl.abort(); }, 25000);
   try {
-    const r = await fetch(SERVER_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify({init:tgInit(), op, a:a || {}, pv}), redirect:'follow', cache:'no-store', credentials:'omit', referrerPolicy:'no-referrer'});
-    j = await r.json();
-  } catch(e){ return {ok:false, err:'net'}; }
-  if (!isObj(j)) return {ok:false, err:'bad'};
-  if (isObj(j.db)) j.changed = applyServer(j.db);
+    r = await fetch(SERVER_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify({init:tgInit(), op, a:a || {}, pv}), redirect:'follow', cache:'no-store', credentials:'omit', referrerPolicy:'no-referrer', signal: ctl ? ctl.signal : undefined});
+  } catch(e){ clearTimeout(tm); return {ok:false, err: (e && e.name === 'AbortError') ? 'timeout' : 'net', detail: String(e && e.message || e).slice(0, 80)}; }
+  try { j = await r.json(); } catch(e){ clearTimeout(tm); return {ok:false, err:'answer', detail:'HTTP ' + r.status}; }
+  clearTimeout(tm);
+  if (!isObj(j)) return {ok:false, err:'bad', detail:'HTTP ' + r.status};
+  if (isObj(j.db)){ try { j.changed = applyServer(j.db); } catch(e){ return {ok:false, err:'bad', detail:'apply: ' + String(e && e.message || e).slice(0, 80)}; } }
   return j;
 }
 function applyServer(raw){
@@ -2019,12 +2023,13 @@ function queueSeen(){
 function netScreen(){
   if (net.state === 'loading') return `<div class="netbox"><span class="spin"></span><p>Загружаем ваши группы</p></div>`;
   if (net.state === 'needtg') return `<div class="netbox"><span class="brand-ic" style="width:56px;height:56px;border-radius:16px;display:grid;place-items:center;background:var(--red);color:#fff">${ic('gift',30)}</span><h1>Откройте HappyGift в Telegram</h1><p>Приложение работает внутри Telegram. Так мы точно знаем, что это вы, и бережём данные участников.</p>${BOT_LINK ? `<button class="btn" data-a="openBot">Открыть в Telegram</button>` : ''}</div>`;
-  return `<div class="netbox"><h1>Не получилось загрузить</h1><p>${esc(netMsg(net.err))}</p><button class="btn" data-a="retrySync">Попробовать ещё раз</button></div>`;
+  return `<div class="netbox"><h1>Не получилось загрузить</h1><p>${esc(netMsg(net.err))}</p><button class="btn" data-a="retrySync">Попробовать ещё раз</button><p class="small" style="opacity:.7">Код для разработчика: ${esc(net.err || '?')}${net.detail ? ' · ' + esc(net.detail) : ''}</p></div>`;
 }
 async function firstSync(){
-  net.state = 'loading'; render();
-  const j = await api('sync');
-  if (!j.ok){ net.state = 'error'; net.err = j.err; render(); return; }
+  net.state = 'loading'; net.detail = ''; render();
+  let j;
+  try { j = await Promise.race([api('sync'), new Promise(r => setTimeout(() => r({ok:false, err:'timeout'}), 30000))]); } catch(e){ j = {ok:false, err:'js', detail:String(e && e.message || e).slice(0, 80)}; }
+  if (!j.ok){ net.state = 'error'; net.err = j.err; net.detail = j.detail || ''; render(); return; }
   net.state = 'ok';
   const code = ui.startCode; ui.startCode = null;
   if (code){
@@ -2032,6 +2037,7 @@ async function firstSync(){
     else { ui.pendingJoin = cleanCode(code) || null; ui.screen = 'welcome'; ui.draft = {name: (tgUser && tgUser.first_name) || ''}; render(); }
   } else { if (!me() && tgUser) ui.draft = {name: tgUser.first_name || ''}; render(); }
 }
+window.addEventListener('error', e => { if (SRV && net.state === 'loading'){ net.state = 'error'; net.err = 'js'; net.detail = String(e && e.message || '').slice(0, 80); try { render(); } catch(_){} } });
 if (SRV){
   A.retrySync = () => firstSync();
   A.openBot = () => { if (BOT_LINK) window.open(BOT_LINK, '_blank', 'noopener,noreferrer'); };
