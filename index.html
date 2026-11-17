@@ -6,16 +6,18 @@
 <meta name="theme-color" content="#F8F1F2">
 <meta name="color-scheme" content="light">
 <title>HappyGift</title>
-<!-- ================= НАСТРОЙКИ: менять можно только эти три строки ================= -->
+<!-- ================= НАСТРОЙКИ: менять можно только эти четыре строки ================= -->
 <!-- Ссылка на мини-приложение из BotFather, вида https://t.me/ИмяБота/ИмяПриложения -->
 <meta name="happygift:bot" content="https://t.me/happygift_app_bot/app">
 <!-- Ссылка на страницу для донатов (обязательно начинается с https://) -->
 <meta name="happygift:donate" content="https://boosty.to/neurovibe/donate">
-<!-- Режим проверки с тестовыми участниками: on или off. Перед запуском для людей поставьте off -->
+<!-- Адрес сервера из Yandex Cloud, вида https://functions.yandexcloud.net/... Пока пусто, всё хранится только на одном телефоне -->
+<meta name="happygift:server" content="https://functions.yandexcloud.net/d4eevubjhr1irc5fmhbo">
+<!-- Режим проверки с тестовыми участниками: on или off. Когда вписан адрес сервера, он выключается сам -->
 <meta name="happygift:test" content="off">
 <!-- ================= Ниже ничего не менять: приложение защищено от изменений и перестанет запускаться ================= -->
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Xs4JWk9FV94qyHLxOy4e6sBSx2ZAAGH+7NOTCYiQTh0=' https://telegram.org; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-5peEq7NUwJm9zoB/VNlqzVJGqdr+sJp/Z/z2J6Ncyuk=' https://telegram.org; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data:; connect-src https://functions.yandexcloud.net; base-uri 'none'; form-action 'none'; object-src 'none'">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Unbounded:wght@700&display=swap&subset=cyrillic" rel="stylesheet">
@@ -465,6 +467,12 @@ select.in{appearance:none;-webkit-appearance:none;background-image:url("data:ima
 .donate button:active{transform:scale(.97)}
 @keyframes dnin{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.donate{animation:none}}
+.busy{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:rgba(248,241,242,.35)}
+.spin{width:38px;height:38px;border-radius:50%;border:3px solid var(--blush-2);border-top-color:var(--red);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.netbox{min-height:70vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:14px;padding:24px 8px}
+.netbox h1{font-size:24px}.netbox p{color:var(--mute);line-height:1.5;max-width:300px}
+.netbox .btn{width:auto;padding:0 26px}
 .barerr{margin:0 0 10px;text-align:center;background:#fff;border:1px solid var(--blush-2);border-radius:var(--r-s);padding:10px 12px;box-shadow:0 10px 24px -14px rgba(58,10,20,.4)}
 .toast{position:fixed;left:50%;width:max-content;top:calc(env(safe-area-inset-top) + 16px);transform:translateX(-50%);background:var(--burg);color:#fff;padding:12px 18px 12px 14px;border-radius:var(--r-m);font-weight:700;font-size:14px;z-index:40;max-width:90vw;display:flex;align-items:center;gap:8px;box-shadow:0 16px 30px -12px rgba(58,10,20,.6);animation:toastin .28s var(--ease)}
 @keyframes toastin{from{opacity:0;transform:translate(-50%,-10px)}to{opacity:1;transform:translate(-50%,0)}}
@@ -503,7 +511,10 @@ function cfg(n){ const m = document.querySelector('meta[name="happygift:'+n+'"]'
 function safeUrl(u, host){ try { const x = new URL(u); return (x.protocol === 'https:' && !x.username && !x.password && (!host || x.hostname === host)) ? x.href : ''; } catch(e){ return ''; } }
 const BOT_LINK = safeUrl(cfg('bot'), 't.me').replace(/[?#].*$/,'').replace(/\/$/,'');
 const DONATE_URL = safeUrl(cfg('donate'));
-const TEST_MODE = cfg('test') === 'on';
+function serverUrl(){ const u = safeUrl(cfg('server'), 'functions.yandexcloud.net'); try { return /^\/[a-z0-9]{10,40}\/?$/.test(new URL(u).pathname) ? u.replace(/[?#].*$/, '').replace(/\/$/, '') : ''; } catch(e){ return ''; } }
+const SERVER_URL = serverUrl();
+const SRV = !!SERVER_URL;
+const TEST_MODE = cfg('test') === 'on' && !SRV;
 const DONATE_KEY = 'happygift_donate_until';
 
 /* ============ TELEGRAM ============ */
@@ -539,6 +550,7 @@ function load(){
 let db = fresh();
 let saveWarned = false;
 function save(){
+  if (SRV){ queueSeen(); return; }
   mem = db;
   try { localStorage.setItem(KEY, JSON.stringify(db)); }
   catch(e){ if (!saveWarned && typeof toast === 'function'){ saveWarned = true; setTimeout(() => toast('Память телефона заполнена, данные могут не сохраниться'), 0); } }
@@ -745,7 +757,7 @@ function drawFeasible(g){
   if (feas.key !== key){ feas.key = key; feas.ok = g.members.length < 3 ? true : !!planDraw(g); }
   return feas.ok;
 }
-function litCount(g){ const p = g.progress || {}; return g.members.filter(id => (p[id]||0) >= 2).length; }
+function litCount(g){ if (typeof g.lit === 'number') return g.lit; const p = g.progress || {}; return g.members.filter(id => (p[id]||0) >= 2).length; }
 
 /* ёлка группы */
 const TREE_CX = 110;
@@ -1383,6 +1395,7 @@ function render(){
   if (ui.viewAs && db.users[ui.viewAs]) {
     html += `<div class="banner"><span>Вы смотрите как ${esc(db.users[ui.viewAs].name)}</span><button data-a="stopView">Вернуться</button></div>`;
   }
+  if (SRV && net.state !== 'ok'){ app.innerHTML = netScreen(); renderLayer(); return; }
   let scr = ui.screen;
   if (!me() && scr !== 'onboard' && scr !== 'guide' && scr !== 'rules') scr = 'welcome';
   if (scr === 'onboard') html += screenOnboard();
@@ -1419,6 +1432,7 @@ function renderLayer(){
   if (isImg(ui.zoom)) h += `<div class="scrim zoom" data-a="closeZoom"><img src="${ui.zoom}" alt="QR или штрихкод"><span>Нажмите, чтобы закрыть</span></div>`;
   if (ui.toast) h += `<div class="toast" role="status">${ic('check',18)}${esc(ui.toast)}</div>`;
   if (ui.donate && DONATE_URL) h += `<aside class="donate" role="complementary" aria-label="Поддержка разработчика"><span class="dn-ic">${ic('heart',18)}</span><b>Донат на развитие разработчику</b><p>Приложение бесплатное. Если оно вам пригодилось, можно поддержать его развитие.</p><div class="dn-row"><button class="go" data-a="donateGo">Поддержать</button><button data-a="donateLater">Не сейчас</button></div></aside>`;
+  if (SRV && net.busy) h += `<div class="busy" role="status" aria-label="Сохраняем"><span class="spin"></span></div>`;
   document.getElementById('layer').innerHTML = h;
 }
 
@@ -1642,10 +1656,15 @@ function readImage(file){
       im.onerror = rej;
       im.onload = () => {
         if (!im.width || !im.height || im.width*im.height > 40e6){ rej(); return; }
-        const k = Math.min(1, 1000/Math.max(im.width, im.height));
-        const c = document.createElement('canvas'); c.width = Math.round(im.width*k); c.height = Math.round(im.height*k);
-        const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0,0,c.width,c.height); x.drawImage(im,0,0,c.width,c.height);
-        res(c.toDataURL('image/jpeg', 0.9));
+        let out = '';
+        for (const [side, q] of [[1000,.88],[1000,.75],[850,.7],[700,.65],[600,.6]]){
+          const k = Math.min(1, side/Math.max(im.width, im.height));
+          const c = document.createElement('canvas'); c.width = Math.round(im.width*k); c.height = Math.round(im.height*k);
+          const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0,0,c.width,c.height); x.drawImage(im,0,0,c.width,c.height);
+          out = c.toDataURL('image/jpeg', q);
+          if (out.length < 600000) break;
+        }
+        res(out);
       };
       im.src = fr.result;
     };
@@ -1654,7 +1673,7 @@ function readImage(file){
 }
 document.addEventListener('change', e => {
   if (e.target.dataset && e.target.dataset.c === 'sound'){ setSound(e.target.checked); return; }
-  if (e.target.dataset && e.target.dataset.c === 'smart'){ const g = db.groups[ui.groupId]; if (g && !g.drawn && g.adminId === myId()){ g.smart = e.target.checked; save(); render(); } return; }
+  if (e.target.dataset && e.target.dataset.c === 'smart'){ const g = db.groups[ui.groupId]; if (g && !g.drawn && g.adminId === myId()){ g.smart = e.target.checked; save(); render(); if (SRV) send('rules', {g:g.id, exclude:g.exclude||[], smart:g.smart}); } return; }
   if (e.target.dataset && e.target.dataset.file){
     const f = e.target.files && e.target.files[0]; if (!f) return;
     if (!/^image\/(jpeg|png|webp)$/.test(f.type) || f.size > 12*1024*1024){ ui.error = 'Подойдёт картинка JPG, PNG или WebP до 12 МБ.'; render(); return; }
@@ -1881,14 +1900,17 @@ function cleanGroup(g, id, users){
   const r = {id, code, name, budget: cStr(g.budget, 30), date: /^\d{4}-\d{2}-\d{2}$/.test(g.date) ? g.date : '', adminId: g.adminId, members, drawn: false, assign: null, parcels: Object.create(null), createdAt: cNum(g.createdAt)};
   if (g.smart === false) r.smart = false;
   r.exclude = (Array.isArray(g.exclude) ? g.exclude : []).filter(p => Array.isArray(p) && p.length === 2 && isM(p[0]) && isM(p[1]) && p[0] !== p[1]).slice(0, 300).map(p => [p[0], p[1]]);
+  // С сервера приходит только своя пара: кому дарю я и анонимный ключ «мой Санта»
+  const proj = SRV && g.proj === true, isK = proj ? (k => isM(k) || k === 'xsanta') : isM;
   if (g.drawn === true && isObj(g.assign)){
-    const as = cMap(g.assign, isM, v => (typeof v === 'string' && isM(v)) ? v : undefined);
+    const as = cMap(g.assign, isK, v => (typeof v === 'string' && isM(v)) ? v : undefined);
     const givers = Object.keys(as), recv = givers.map(k => as[k]);
     // жеребьёвка считается действительной, только если каждый дарит ровно одному и получает ровно от одного
-    if (givers.length === members.length && new Set(recv).size === members.length && givers.every(k => as[k] !== k)){
+    if (proj ? givers.every(k => as[k] !== k) : (givers.length === members.length && new Set(recv).size === members.length && givers.every(k => as[k] !== k))){
+      if (proj) r.lit = cInt(g.lit, members.length);
       r.drawn = true; r.assign = as; r.drawnAt = cNum(g.drawnAt); r.mode = cPick(g.mode, ['split','grouped','plain']) || 'plain';
       r.alias = cMap(g.alias, isM, v => cPick(v, AV_KEYS) || undefined);
-      r.progress = cMap(g.progress, isM, v => cInt(v, 4));
+      r.progress = cMap(g.progress, isK, v => cInt(v, 4));
       r.quiz = cMap(g.quiz, isM, v => { const seen = []; return (Array.isArray(v) ? v : []).filter(x => { const q = isObj(x) && QUIZ.find(z => z.id === x.id); if (!q || seen.includes(x.id)) return false; seen.push(x.id); return true; })
         .map(x => { const q = QUIZ.find(z => z.id === x.id), a = (Number.isInteger(x.a) && x.a >= 0 && x.a < q.o.length) ? x.a : null; const o = {id: x.id, at: cNum(x.at), a}; if (a != null) o.ansAt = cNum(x.ansAt); return o; }); });
       r.cards = cMap(g.cards, isM, v => { if (!isObj(v)) return undefined; const t = cStr(v.text, 120).trim(); return t ? {tpl: cPick(v.tpl, CARDS.map(c => c.id)) || 'snow', text: t, at: cNum(v.at)} : undefined; });
@@ -1908,14 +1930,184 @@ function cleanDb(raw){
   d.meId = (typeof raw.meId === 'string' && ID_RE.test(raw.meId)) ? raw.meId : null;
   return d;
 }
-db = cleanDb(load());
+db = SRV ? fresh() : cleanDb(load());
 // В Telegram личность берётся из Telegram, а не из сохранённой записи: чужой профиль на этом устройстве не откроется.
-if (tgUser) db.meId = 'tg' + tgUser.id;
+if (SRV) db.meId = null;
+else if (tgUser) db.meId = 'tg' + tgUser.id;
 else if (!db.meId || /^tg\d/.test(db.meId)) db.meId = rid('u');
 save();
 
+/* ============ СВЯЗЬ С СЕРВЕРОМ (Yandex Cloud) ============
+   Подпись Telegram проверяет сервер. Он отдаёт каждому только его данные: свою анкету,
+   имена участников группы и одну пару «я дарю / мне дарят». */
+const net = {state:'ok', busy:false, err:'', srvSeen:{}, imgs:{}, last:'', q:Promise.resolve(), pending:0, pendingRender:false};
+const NET_ERR = {auth:'Не удалось подтвердить вход через Telegram. Закройте приложение и откройте снова.', setup:'Сервер ещё не настроен.', rate:'Слишком много действий подряд. Подождите минуту.',
+  busy:'Сервер занят, попробуйте ещё раз.', profile:'Сначала заполните анкету.', agree:'Отметьте, что принимаете правила сервиса.', locked:'Данные закрыты, менять их больше нельзя',
+  nocode:'Группа с таким кодом не найдена. Проверьте код.', drawn:'В этой группе жеребьёвка уже прошла.', full:'В группе уже 100 участников.', strict:'Не получилось: правила слишком строгие',
+  few:'Нужно хотя бы трое участников.', limit:'Можно создать не больше 20 групп.', image:'Подойдёт картинка JPG, PNG или WebP.', invalid:'Проверьте данные и попробуйте ещё раз.',
+  nogroup:'Это действие сейчас недоступно.', bad:'Что-то пошло не так. Обновите приложение.', net:'Нет связи с сервером. Проверьте интернет.'};
+const netMsg = k => NET_ERR[k] || NET_ERR.bad;
+function tgInit(){ return (tg && typeof tg.initData === 'string') ? tg.initData : ''; }
+async function api(op, a){
+  const pv = {};
+  Object.keys(net.imgs).forEach(k => { const i = k.indexOf(':'), gid = k.slice(0, i), key = k.slice(i + 1); (pv[gid] = pv[gid] || {})[key] = net.imgs[k].v; });
+  let j;
+  try {
+    const r = await fetch(SERVER_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify({init:tgInit(), op, a:a || {}, pv}), redirect:'follow', cache:'no-store', credentials:'omit', referrerPolicy:'no-referrer'});
+    j = await r.json();
+  } catch(e){ return {ok:false, err:'net'}; }
+  if (!isObj(j)) return {ok:false, err:'bad'};
+  if (isObj(j.db)) j.changed = applyServer(j.db);
+  return j;
+}
+function applyServer(raw){
+  if (isObj(raw.groups)) Object.keys(raw.groups).forEach(gid => {
+    const g = raw.groups[gid]; if (!isObj(g) || !isObj(g.parcels)) return;
+    Object.keys(g.parcels).forEach(k => { const p = g.parcels[k], ck = gid + ':' + k; if (!isObj(p)) return;
+      if (isImg(p.img)) net.imgs[ck] = {v:p.v, img:p.img};
+      else if (net.imgs[ck] && net.imgs[ck].v === p.v) p.img = net.imgs[ck].img; });
+  });
+  const nd = cleanDb(raw);
+  net.srvSeen = {};
+  Object.keys(nd.groups).forEach(gid => { const g = nd.groups[gid]; Object.keys(g.chats || {}).forEach(k => { net.srvSeen[gid + ':' + k] = {s:g.chats[k].seenS, w:g.chats[k].seenW}; }); });
+  const sig = JSON.stringify(nd), changed = sig !== net.last;
+  net.last = sig; db = nd;
+  return changed;
+}
+// Действие, после которого нужно дождаться сервера (создать группу, вступить, жеребьёвка)
+async function call(op, a){
+  net.busy = true; renderLayer();
+  await net.q;
+  const j = await api(op, a);
+  net.busy = false;
+  if (!j.ok){ if (j.changed) safeRender(); renderLayer(); toast(netMsg(j.err)); return null; }
+  return j;
+}
+// Действие уже показано на экране, сервер подтверждает его в фоне
+function send(op, a){
+  net.pending++;
+  net.q = net.q.then(() => api(op, a)).then(j => {
+    net.pending--;
+    if (!j.ok){ toast(netMsg(j.err)); if (j.err === 'net') return quietSync(true); }
+    if (!net.pending) safeRender();
+  });
+}
+async function quietSync(force){
+  if (!SRV || net.state !== 'ok' || net.busy || (net.pending && !force)) return;
+  const j = await api('sync');
+  if (j.ok && j.changed && !net.pending) safeRender();
+}
+function safeRender(){
+  const ae = document.activeElement, tag = ae && ae.tagName;
+  if (ae && ae.id === 'msg'){ ui.focusMsg = true; ui.swing = null; render(); return; }
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'){ net.pendingRender = true; return; }
+  ui.swing = null; render();
+}
+document.addEventListener('focusout', () => { if (net.pendingRender){ setTimeout(() => { const t = document.activeElement && document.activeElement.tagName; if (net.pendingRender && t !== 'INPUT' && t !== 'TEXTAREA' && t !== 'SELECT'){ net.pendingRender = false; ui.swing = null; render(); } }, 0); } });
+var seenT = 0;
+function queueSeen(){
+  clearTimeout(seenT);
+  seenT = setTimeout(() => {
+    const g = db.groups[ui.groupId], id = db.meId; if (!g || !g.drawn || !g.assign || !g.assign[id]) return;
+    const w = g.assign[id];
+    [[w, 'seenS', 's', 'ward'], [id, 'seenW', 'w', 'santa']].forEach(([key, f, sf, to]) => {
+      const th = (g.chats || {})[key], was = net.srvSeen[g.id + ':' + key];
+      if (th && th[f] > (was ? was[sf] : 0)){ net.srvSeen[g.id + ':' + key] = Object.assign({}, was, {[sf]:th[f]}); send('seen', {g:g.id, to, n:th[f]}); }
+    });
+  }, 900);
+}
+function netScreen(){
+  if (net.state === 'loading') return `<div class="netbox"><span class="spin"></span><p>Загружаем ваши группы</p></div>`;
+  if (net.state === 'needtg') return `<div class="netbox"><span class="brand-ic" style="width:56px;height:56px;border-radius:16px;display:grid;place-items:center;background:var(--red);color:#fff">${ic('gift',30)}</span><h1>Откройте HappyGift в Telegram</h1><p>Приложение работает внутри Telegram. Так мы точно знаем, что это вы, и бережём данные участников.</p>${BOT_LINK ? `<button class="btn" data-a="openBot">Открыть в Telegram</button>` : ''}</div>`;
+  return `<div class="netbox"><h1>Не получилось загрузить</h1><p>${esc(netMsg(net.err))}</p><button class="btn" data-a="retrySync">Попробовать ещё раз</button></div>`;
+}
+async function firstSync(){
+  net.state = 'loading'; render();
+  const j = await api('sync');
+  if (!j.ok){ net.state = 'error'; net.err = j.err; render(); return; }
+  net.state = 'ok';
+  const code = ui.startCode; ui.startCode = null;
+  if (code){
+    if (me()) joinGroup(code);
+    else { ui.pendingJoin = cleanCode(code) || null; ui.screen = 'welcome'; ui.draft = {name: (tgUser && tgUser.first_name) || ''}; render(); }
+  } else { if (!me() && tgUser) ui.draft = {name: tgUser.first_name || ''}; render(); }
+}
+if (SRV){
+  A.retrySync = () => firstSync();
+  A.openBot = () => { if (BOT_LINK) window.open(BOT_LINK, '_blank', 'noopener,noreferrer'); };
+  joinGroup = async function(code){
+    code = cleanCode(code);
+    if (!code){ ui.error = netMsg('nocode'); render(); return; }
+    const j = await call('join', {code});
+    if (!j){ if (ui.screen === 'join'){ ui.error = ui.toast; ui.toast = ''; render(); } return; }
+    ui.error = ''; go('group', {groupId:j.gid});
+  };
+  const origSave = A.saveProfile;
+  A.saveProfile = async function(el){
+    if (me()) return origSave.call(A, el);
+    const draft = Object.assign({}, ui.draft), pj = ui.pendingJoin, af = ui.after;
+    ui.pendingJoin = null; ui.after = null;
+    origSave.call(A, el);
+    const rec = db.users[db.meId];
+    if (!rec){ ui.pendingJoin = pj; ui.after = af; return; }
+    delete db.users[db.meId];
+    const j = await call('profile', {rec, agree:true, rules:RULES_VER});
+    if (!j){ ui.draft = draft; ui.pendingJoin = pj; ui.after = af; go('onboard'); ui.draft = draft; render(); return; }
+    if (pj) joinGroup(pj); else if (af) go(af); else go('home');
+  };
+  A.confirmProfile = async function(){
+    const rec = ui.pendingRec; ui.modal = null; ui.pendingRec = null; renderLayer();
+    if (!rec) return;
+    const j = await call('profile', {rec});
+    if (!j) return;
+    ui.draft = {}; go('home'); toast(j.same ? 'Изменений нет, попытка не потрачена' : 'Данные обновлены');
+  };
+  A.createGroup = async function(){
+    const d = ui.draft, name = cStr(d.gname, 40).trim();
+    if (!me()) return;
+    if (!name){ ui.error = 'Дайте группе название.'; render(); return; }
+    const j = await call('create', {name, budget:cStr(d.gbudget, 30).trim(), date:/^\d{4}-\d{2}-\d{2}$/.test(d.gdate||'') ? d.gdate : '', plays:d.gplays !== false});
+    if (!j) return;
+    ui.draft = {}; go('group', {groupId:j.gid});
+  };
+  A.confirmDraw = async function(){
+    const g = db.groups[ui.groupId]; ui.modal = null; renderLayer();
+    if (!g || g.drawn || g.adminId !== myId()) return;
+    const j = await call('draw', {g:g.id});
+    if (!j) return;
+    hap('ok'); render(); toast('Жеребьёвка проведена');
+  };
+  // Остальные действия сразу видны на экране, а сервер подтверждает их в фоне
+  const wrap = (name, before, after) => { const f = A[name]; A[name] = function(el){ const b = before(el); f.call(A, el); after(b, el); }; };
+  const G = () => db.groups[ui.groupId];
+  const ward = g => g && g.drawn && g.assign && g.assign[db.meId];
+  wrap('setStage', () => { const g = G(); return g && (g.progress || {})[db.meId]; }, b => { const g = G(); if (!ward(g)) return; const v = (g.progress || {})[db.meId] || 0; if (v !== (b || 0)) send('stage', {g:g.id, v}); });
+  wrap('askQ', () => { const g = G(); return JSON.stringify(g && (g.quiz || {})[ward(g)]); }, (b, el) => { const g = G(); if (ward(g) && JSON.stringify((g.quiz || {})[ward(g)]) !== b) send('ask', {g:g.id, q:el.dataset.v}); });
+  wrap('answerQ', () => { const g = G(); return JSON.stringify(g && (g.quiz || {})[db.meId]); }, (b, el) => { const g = G(); if (g && JSON.stringify((g.quiz || {})[db.meId]) !== b) send('answer', {g:g.id, q:el.dataset.q, a:+el.dataset.v}); });
+  A.sendCard = (f => function(el){ const g = G(), w = ward(g), b = JSON.stringify(w && (g.cards || {})[w]); f.call(A, el); const c = w && (g.cards || {})[w]; if (c && JSON.stringify(c) !== b) send('card', {g:g.id, tpl:c.tpl, text:c.text}); })(A.sendCard);
+  const rulesSig = () => { const g = G(); return g ? JSON.stringify([g.exclude || [], g.smart !== false]) : ''; };
+  const rulesSend = b => { const g = G(); if (g && !g.drawn && rulesSig() !== b) send('rules', {g:g.id, exclude:g.exclude || [], smart:g.smart !== false}); };
+  wrap('exAdd', rulesSig, rulesSend); wrap('exDel', rulesSig, rulesSend);
+  wrap('removeMember', () => ({id:ui.pendingId, g:ui.groupId}), b => { const g = db.groups[b.g]; if (g && b.id && !g.members.includes(b.id)) send('remove', {g:b.g, id:b.id}); });
+  wrap('leaveGroup', () => ui.groupId, b => { const g = db.groups[b]; if (g && !g.members.includes(db.meId)) send('leave', {g:b}); });
+  wrap('sendImage', () => { const g = G(), w = ward(g); return {img:ui.draft.pimg, v:w && (g.parcels || {})[w] ? g.parcels[w].v : 0}; }, b => { const g = G(), w = ward(g), p = w && (g.parcels || {})[w]; if (p && p.v !== b.v && isImg(b.img)) send('parcel', {g:g.id, img:b.img}); });
+  wrap('requestNew', () => { const g = G(), p = g && (g.parcels || {})[db.meId]; return p && p.requested; }, b => { const g = G(), p = g && (g.parcels || {})[db.meId]; if (p && p.requested && !b) send('request', {g:g.id}); });
+  wrap('sendMsg', () => ({text:cStr(ui.draft.msg, 500).trim(), tab:ui.chatTab}), b => { const g = G(); if (ward(g) && b.text && !ui.draft.msg) send('msg', {g:g.id, to:b.tab === 'santa' ? 'santa' : 'ward', text:b.text}); });
+  wrap('guideClose', () => { const u = db.users[db.meId]; return u && u.guideSeen; }, b => { const u = db.users[db.meId]; if (u && u.guideSeen && !b) send('flag', {guideSeen:true}); });
+  setInterval(() => { if (document.visibilityState === 'visible' && ui.screen === 'group') quietSync(); }, 30000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') quietSync(); });
+}
+
 /* ============ СТАРТ ============ */
 (function init(){
+  if (SRV){
+    const sp = tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param;
+    ui.startCode = (sp && sp.indexOf('join_') === 0) ? sp.slice(5) : null;
+    if (!tgUser || !tgInit()){ net.state = 'needtg'; render(); }
+    else firstSync();
+    startSplash();
+    return;
+  }
   if (!db.users[db.meId] && tgUser){
     ui.draft = {name: [tgUser.first_name].filter(Boolean).join(' ')};
   }
