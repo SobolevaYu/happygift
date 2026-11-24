@@ -20,12 +20,12 @@
 <!-- Ссылка на страницу для донатов (обязательно начинается с https://) -->
 <meta name="happygift:donate" content="https://boosty.to/neurovibe/donate">
 <!-- Адрес сервера из Yandex Cloud, вида https://functions.yandexcloud.net/... Пока пусто, всё хранится только на одном телефоне -->
-<meta name="happygift:server" content="https://functions.yandexcloud.net/d4eevubjhr1irc5fmhbo">
+<meta name="happygift:server" content="https://script.google.com/macros/s/AKfycbzvrkp7RMK7wPVs0CvcYl_oXCgzGO5dKHo46c-Q1MnIBUa6oOykElQR2VuKF8dIOsJQlw/exec">
 <!-- Режим проверки с тестовыми участниками: on или off. Когда вписан адрес сервера, он выключается сам -->
 <meta name="happygift:test" content="off">
 <!-- ================= Ниже ничего не менять: приложение защищено от изменений и перестанет запускаться ================= -->
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-aIrkuGMvo24YH+6rZ65JbseDfgdtNa4kvyEIfzEJIlQ=' https://telegram.org; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data:; connect-src https://functions.yandexcloud.net; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Q3j4/6w+pk7/I70YwbmlsUzEYjb5vRCMexvX5pT0Cqs=' https://telegram.org; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data:; connect-src https://functions.yandexcloud.net https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; object-src 'none'">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Unbounded:wght@700&display=swap&subset=cyrillic" rel="stylesheet">
@@ -546,7 +546,13 @@ function cfg(n){ const m = document.querySelector('meta[name="happygift:'+n+'"]'
 function safeUrl(u, host){ try { const x = new URL(u); return (x.protocol === 'https:' && !x.username && !x.password && (!host || x.hostname === host)) ? x.href : ''; } catch(e){ return ''; } }
 const BOT_LINK = safeUrl(cfg('bot'), 't.me').replace(/[?#].*$/,'').replace(/\/$/,'');
 const DONATE_URL = safeUrl(cfg('donate'));
-function serverUrl(){ const u = safeUrl(cfg('server'), 'functions.yandexcloud.net'); try { return /^\/[a-z0-9]{10,40}\/?$/.test(new URL(u).pathname) ? u.replace(/[?#].*$/, '').replace(/\/$/, '') : ''; } catch(e){ return ''; } }
+function serverUrl(){
+  let x; try { x = new URL(cfg('server')); } catch(e){ return ''; }
+  if (x.protocol !== 'https:' || x.username || x.password) return '';
+  if (x.hostname === 'functions.yandexcloud.net' && /^\/[a-z0-9]{10,40}\/?$/.test(x.pathname)) return x.origin + x.pathname.replace(/\/$/, '');
+  if (x.hostname === 'script.google.com' && /^\/macros\/s\/[A-Za-z0-9_-]{20,200}\/exec$/.test(x.pathname)) return x.origin + x.pathname;
+  return '';
+}
 const SERVER_URL = serverUrl();
 const SRV = !!SERVER_URL;
 const TEST_MODE = cfg('test') === 'on' && !SRV;
@@ -692,6 +698,7 @@ const ICONS = {
   edit:'<path d="M4 20h4L19 9a2.8 2.8 0 00-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
   star:'<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>',
   heart:'<path d="M12 20s-7-4.4-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.6-7 10-7 10z"/>',
+  bell:'<path d="M6 17V11a6 6 0 0112 0v6l1.5 2h-15zM10 21h4"/>',
   user:'<circle cx="12" cy="8" r="4"/><path d="M4.5 20c0-4 3.4-6.5 7.5-6.5s7.5 2.5 7.5 6.5"/>'
 };
 function ic(n, size){
@@ -1376,6 +1383,7 @@ function screenGroup(){
   ${showGroup ? `<div class="stack" style="--gap:28px">
     ${!g.drawn && isAdmin ? launchSteps(g, canDraw) : ''}
     ${!g.drawn && !isAdmin && isMember ? waitCard(g) : ''}
+    ${notesCard(g)}
     ${!g.drawn ? `
     <div class="ticket">
       <div class="tk-top"><div class="small muted">Код группы</div><div class="code">${esc(g.code)}</div></div>
@@ -1400,6 +1408,7 @@ function screenGroup(){
     </div>
 
     ${!g.drawn && isAdmin && g.members.length >= 3 ? rulesCard(g) : ''}
+    ${isAdmin ? manageCard(g) : ''}
     ${!g.drawn && isAdmin ? `
       <div class="bar" style="margin:0 -20px">
         <button class="btn" data-a="askDraw" ${canDraw?'':'disabled'}>${ic('shuffle',20)}Провести жеребьёвку</button>
@@ -1421,6 +1430,62 @@ function screenGroup(){
       </div>
     </details>` : ''}
   </div>` : ''}`;
+}
+
+
+/* ============ УПРАВЛЕНИЕ ГРУППОЙ (организатор) ============ */
+function manageCard(g){
+  if (!SRV) return '';
+  return `<div class="tool"><div class="chat-h">${ic('crown',20)}<h3>Управление группой</h3></div>
+    <p class="small muted" style="margin-bottom:14px">Изменить название, сменить код, передать группу другому человеку, отменить жеребьёвку или удалить группу.</p>
+    <div class="stack" style="--gap:10px">
+      ${g.drawn ? `<button class="btn small ghost" data-a="askRemind">${ic('bell',18)}Напомнить тем, кто не купил подарок</button>` : ''}
+      <button class="btn small ghost" data-a="openManage">${ic('edit',18)}Изменить и управлять</button>
+    </div></div>`;
+}
+function notesCard(g){
+  if (!SRV || ui.viewAs) return '';
+  const u = db.users[db.meId]; if (!u || !g.members.includes(db.meId)) return '';
+  if (u.wa) return `<div class="center"><button class="link" data-a="notesOff">Выключить уведомления от бота</button></div>`;
+  if (ui.notesHide) return '';
+  return `<div class="tool"><div class="chat-h">${ic('bell',20)}<h3>Уведомления от бота</h3></div>
+    <p class="small muted" style="margin-bottom:14px">Бот напишет вам в Telegram, когда пройдёт жеребьёвка, придёт сообщение или откроется новость в вашей группе. Имён и текста сообщений в уведомлении нет.</p>
+    <div class="stack" style="--gap:10px"><button class="btn small" data-a="notesOn">${ic('bell',18)}Разрешить уведомления</button>
+    <button class="link" data-a="notesLater">Не сейчас</button></div></div>`;
+}
+function screenEditGroup(){
+  const g = db.groups[ui.groupId], d = ui.draft;
+  if (!g || g.adminId !== myId()) return screenHome();
+  const others = g.members.filter(m => m !== g.adminId && db.users[m]);
+  return `
+  <div class="top"><button class="iconbtn" data-a="closeManage" aria-label="Назад">${ic('back')}</button><span class="chip gold">${ic('crown',14)}Организатор</span></div>
+  <div class="stack" style="--gap:26px">
+    <div><h1>Управление группой</h1></div>
+    <div>
+      <label class="f" for="e-name">Название</label>
+      <div class="inw">${ic('gift')}<input class="in" id="e-name" data-f="ename" maxlength="40" autocomplete="off" value="${esc(d.ename)}"></div>
+    </div>
+    <div>
+      <label class="f" for="e-budget">Бюджет подарка</label>
+      <div class="inw">${ic('wallet')}<input class="in" id="e-budget" data-f="ebudget" maxlength="30" autocomplete="off" value="${esc(d.ebudget)}"></div>
+    </div>
+    <div>
+      <label class="f" for="e-date">Дата обмена</label>
+      <div class="inw">${ic('calendar')}<input class="in" id="e-date" type="date" lang="ru" data-f="edate" value="${esc(d.edate)}"></div>
+    </div>
+    ${ui.error ? `<p class="err">${esc(ui.error)}</p>` : ''}
+    <button class="btn" data-a="saveGroup">Сохранить</button>
+    ${!g.drawn ? `<div class="tool"><div class="chat-h">${ic('link',20)}<h3>Код группы</h3></div>
+      <p class="small muted" style="margin-bottom:12px">Если код попал не туда, выпустите новый. Старый код и старая ссылка перестанут работать. Те, кто уже в группе, останутся.</p>
+      <button class="btn small ghost" data-a="askCode">Сменить код</button></div>` : ''}
+    ${others.length ? `<div class="tool"><div class="chat-h">${ic('crown',20)}<h3>Передать группу</h3></div>
+      <p class="small muted" style="margin-bottom:12px">Новый организатор получит все права, а вы станете обычным участником.</p>
+      <div class="stack" style="--gap:8px">${others.map(m => `<button class="btn small ghost" data-a="askOwner" data-id="${esc(m)}">${esc(db.users[m].name)}</button>`).join('')}</div></div>` : ''}
+    ${g.drawn ? `<div class="tool"><div class="chat-h">${ic('shuffle',20)}<h3>Отменить жеребьёвку</h3></div>
+      <p class="small muted" style="margin-bottom:12px">Пары, переписка, открытки и коды посылок удалятся. Участники останутся в группе, и жеребьёвку можно провести заново.</p>
+      <button class="btn small ghost" data-a="askUndo">Отменить жеребьёвку</button></div>` : ''}
+    <div class="center"><button class="link danger" data-a="askDelGroup">Удалить группу</button></div>
+  </div>`;
 }
 
 /* ============ ПРАВИЛА СЕРВИСА ============
@@ -1454,7 +1519,8 @@ function render(){
     html += `<div class="banner"><span>Вы смотрите как ${esc(db.users[ui.viewAs].name)}</span><button data-a="stopView">Вернуться</button></div>`;
   }
   if (SRV && net.state !== 'ok'){ app.innerHTML = netScreen(); renderLayer(); return; }
-  let scr = ui.screen;
+  let scr = ui.screen, gone = false;
+  if ((scr === 'group' || scr === 'editgroup') && !db.groups[ui.groupId]){ ui.screen = scr = 'home'; gone = true; }
   if (!me() && scr !== 'onboard' && scr !== 'guide' && scr !== 'rules') scr = 'welcome';
   if (scr === 'onboard') html += screenOnboard();
   else if (scr === 'create') html += screenCreate();
@@ -1463,13 +1529,15 @@ function render(){
   else if (scr === 'guide') html += screenGuide();
   else if (scr === 'rules') html += screenRules();
   else if (scr === 'group') html += screenGroup();
+  else if (scr === 'editgroup') html += screenEditGroup();
   else html += screenHome();
-  if (scr !== 'onboard' && scr !== 'create' && scr !== 'join' && scr !== 'rules') html += `<div class="dn-foot"><button class="dn-link" data-a="donateGo">${ic('heart',16)}Донат на развитие разработчику</button><button class="link rules-link" data-a="openRules">Правила сервиса</button></div>`;
+  if (scr !== 'onboard' && scr !== 'create' && scr !== 'join' && scr !== 'rules' && scr !== 'editgroup') html += `<div class="dn-foot"><button class="dn-link" data-a="donateGo">${ic('heart',16)}Донат на развитие разработчику</button><button class="link rules-link" data-a="openRules">Правила сервиса</button></div>`;
   app.innerHTML = html;
   const cl = document.getElementById('chatlog'); if (cl) cl.scrollTop = cl.scrollHeight;
   if (ui.focusMsg){ const m = document.getElementById('msg'); if (m) m.focus({preventScroll:true}); ui.focusMsg = false; }
   maybeDonate(scr);
   renderLayer();
+  if (gone) toast('Группа удалена или закрыта организатором');
   try { if (tg && tg.BackButton){ if (document.querySelector('#app .top [aria-label="Назад"]')) tg.BackButton.show(); else tg.BackButton.hide(); } } catch(e){}
 }
 try { if (tg && tg.BackButton) tg.BackButton.onClick(() => { if (ui.zoom){ A.closeZoom(); return; } if (ui.modal){ A.closeModal(); return; } const b = document.querySelector('#app .top [aria-label="Назад"]'); if (b) b.click(); }); } catch(e){}
@@ -1946,6 +2014,7 @@ function cleanUser(u, id){
   if (u.editedAt) r.editedAt = cNum(u.editedAt);
   if (u.guideSeen === true) r.guideSeen = true;
   if (u.demo === true) r.demo = true;
+  if (u.wa === true) r.wa = true;
   if (Number.isInteger(u.rules) && u.rules > 0){ r.rules = Math.min(u.rules, 999); r.rulesAt = cNum(u.rulesAt); }
   return r;
 }
@@ -2003,7 +2072,7 @@ const NET_ERR = {auth:'Не удалось подтвердить вход че�
   busy:'Сервер занят, попробуйте ещё раз.', profile:'Сначала заполните анкету.', agree:'Отметьте, что принимаете правила сервиса.', locked:'Данные закрыты, менять их больше нельзя',
   nocode:'Группа с таким кодом не найдена. Проверьте код.', drawn:'В этой группе жеребьёвка уже прошла.', full:'В группе уже 100 участников.', strict:'Не получилось: правила слишком строгие',
   few:'Нужно хотя бы трое участников.', limit:'Можно создать не больше 20 групп.', image:'Подойдёт картинка JPG, PNG или WebP.', invalid:'Проверьте данные и попробуйте ещё раз.',
-  nogroup:'Это действие сейчас недоступно.', bad:'Что-то пошло не так. Обновите приложение.', net:'Нет связи с сервером. Проверьте интернет. Если включён VPN, выключите его или выберите другую страну.',
+  nogroup:'Это действие сейчас недоступно.', wait:'Так часто нельзя. Попробуйте позже.', bad:'Что-то пошло не так. Обновите приложение.', net:'Нет связи с сервером. Проверьте интернет. Если включён VPN, выключите его или выберите другую страну.',
   timeout:'Сервер слишком долго не отвечает. Если включён VPN, выключите его или выберите другую страну.', answer:'Сервер ответил с ошибкой.', js:'Ошибка в приложении.'};
 const netMsg = k => NET_ERR[k] || NET_ERR.bad;
 function tgInit(){ return (tg && typeof tg.initData === 'string') ? tg.initData : ''; }
@@ -2141,6 +2210,33 @@ if (SRV){
     if (!j) return;
     hap('ok'); render(); toast('Жеребьёвка проведена');
   };
+
+  A.openManage = () => { const g = G(); if (!g || g.adminId !== db.meId) return; go('editgroup'); ui.draft = {ename:g.name, ebudget:g.budget || '', edate:g.date || ''}; render(); };
+  A.closeManage = () => { ui.draft = {}; go('group'); };
+  A.saveGroup = async () => {
+    const g = G(); if (!g) return;
+    const name = cStr(ui.draft.ename, 40).trim();
+    if (!name){ ui.error = 'Дайте группе название.'; render(); return; }
+    const j = await call('gedit', {g:g.id, name, budget:cStr(ui.draft.ebudget, 30).trim(), date:/^\d{4}-\d{2}-\d{2}$/.test(ui.draft.edate || '') ? ui.draft.edate : ''});
+    if (!j) return; ui.draft = {}; go('group'); toast('Сохранено');
+  };
+  A.askCode = () => { ui.modal = {title:'Сменить код группы?', text:'Старый код и старая ссылка перестанут работать. Новую ссылку нужно будет разослать заново.', ok:'confirmCode', okLabel:'Сменить'}; renderLayer(); };
+  A.confirmCode = async () => { const g = G(); ui.modal = null; renderLayer(); if (!g) return; const j = await call('gcode', {g:g.id}); if (j){ ui.draft = {}; go('group'); toast('Код изменён'); } };
+  A.askOwner = el => { const u = db.users[el.dataset.id]; if (!u) return; ui.pendingId = el.dataset.id; ui.modal = {title:'Передать группу?', text:u.name + ' станет организатором. Вы останетесь обычным участником и потеряете права управления.', ok:'confirmOwner', okLabel:'Передать'}; renderLayer(); };
+  A.confirmOwner = async () => { const g = G(), id = ui.pendingId; ui.modal = null; ui.pendingId = null; renderLayer(); if (!g || !id) return; const j = await call('gowner', {g:g.id, id}); if (j){ ui.draft = {}; go('group'); toast('Группа передана'); } };
+  A.askUndo = () => { ui.modal = {title:'Отменить жеребьёвку?', text:'Все пары, переписка, открытки и коды посылок удалятся у всех. Участники останутся в группе, жеребьёвку можно провести заново. Вернуть прежний результат нельзя.', ok:'confirmUndo', okLabel:'Отменить жеребьёвку'}; renderLayer(); };
+  A.confirmUndo = async () => { const g = G(); ui.modal = null; renderLayer(); if (!g) return; const j = await call('greset', {g:g.id}); if (j){ ui.draft = {}; go('group'); toast('Жеребьёвка отменена'); } };
+  A.askDelGroup = () => { const g = G(); if (!g) return; ui.modal = {title:'Удалить группу?', text:'Группа «' + g.name + '», пары, переписка и коды посылок удалятся у всех участников. Вернуть их нельзя.', ok:'confirmDelGroup', okLabel:'Удалить навсегда'}; renderLayer(); };
+  A.confirmDelGroup = async () => { const g = G(); ui.modal = null; renderLayer(); if (!g) return; const j = await call('gdelete', {g:g.id}); if (j){ ui.draft = {}; go('home'); toast('Группа удалена'); } };
+  A.askRemind = () => { ui.modal = {title:'Отправить напоминание?', text:'Бот напишет тем, кто ещё не купил подарок и разрешил уведомления. Имён в сообщении нет. Можно раз в сутки.', ok:'confirmRemind', okLabel:'Отправить'}; renderLayer(); };
+  A.confirmRemind = async () => { const g = G(); ui.modal = null; renderLayer(); if (!g) return; const j = await call('remind', {g:g.id}); if (j) toast(j.sent ? 'Напоминание отправлено: ' + j.sent + ' ' + pl(j.sent, 'человеку', 'людям', 'людям') : 'Сейчас некому напоминать'); };
+  A.notesOn = () => {
+    const done = ok => { if (!ok){ toast('Разрешение не получено. Откройте бота и нажмите Старт.'); return; } const u = db.users[db.meId]; if (u) u.wa = true; send('wa', {on:true}); render(); toast('Уведомления включены'); };
+    try { if (tg && typeof tg.requestWriteAccess === 'function'){ tg.requestWriteAccess(r => done(r === true || r === 'allowed')); return; } } catch(e){}
+    A.openBot(); toast('Откройте бота и нажмите Старт, затем вернитесь сюда');
+  };
+  A.notesOff = () => { const u = db.users[db.meId]; if (u) u.wa = false; send('wa', {on:false}); render(); toast('Уведомления выключены'); };
+  A.notesLater = () => { ui.notesHide = true; render(); };
   // Остальные действия сразу видны на экране, а сервер подтверждает их в фоне
   const wrap = (name, before, after) => { const f = A[name]; A[name] = function(el){ const b = before(el); f.call(A, el); after(b, el); }; };
   const G = () => db.groups[ui.groupId];
