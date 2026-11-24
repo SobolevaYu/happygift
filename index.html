@@ -8,16 +8,16 @@
 <title>HappyGift</title>
 <!-- ================= НАСТРОЙКИ: менять можно только эти четыре строки ================= -->
 <!-- Ссылка на мини-приложение из BotFather, вида https://t.me/ИмяБота/ИмяПриложения -->
-<meta name="happygift:bot" content="https://t.me/happygift_app_bot/app">
+<meta name="happygift:bot" content="">
 <!-- Ссылка на страницу для донатов (обязательно начинается с https://) -->
-<meta name="happygift:donate" content="https://boosty.to/neurovibe/donate">
+<meta name="happygift:donate" content="">
 <!-- Адрес сервера из Yandex Cloud, вида https://functions.yandexcloud.net/... Пока пусто, всё хранится только на одном телефоне -->
-<meta name="happygift:server" content="https://functions.yandexcloud.net/d4eevubjhr1irc5fmhbo">
+<meta name="happygift:server" content="">
 <!-- Режим проверки с тестовыми участниками: on или off. Когда вписан адрес сервера, он выключается сам -->
-<meta name="happygift:test" content="off">
+<meta name="happygift:test" content="on">
 <!-- ================= Ниже ничего не менять: приложение защищено от изменений и перестанет запускаться ================= -->
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-02ArZIeKBP20nkHuTTP3TMSV5wGW5biH/IcEPwgMHo4=' https://telegram.org; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data:; connect-src https://functions.yandexcloud.net; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-aIrkuGMvo24YH+6rZ65JbseDfgdtNa4kvyEIfzEJIlQ=' https://telegram.org; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data:; connect-src https://functions.yandexcloud.net; base-uri 'none'; form-action 'none'; object-src 'none'">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Unbounded:wght@700&display=swap&subset=cyrillic" rel="stylesheet">
@@ -35,7 +35,14 @@
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;font-weight:500;line-height:1.5;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
-body{min-height:100dvh;overflow-x:hidden}
+html{overflow-x:clip}
+body{min-height:100dvh;overflow-x:clip}
+/* длинные слова, ссылки и имена переносятся, а не раздвигают экран */
+#app,#layer{overflow-wrap:anywhere;word-break:normal}
+#app input,#app textarea,#app select{min-width:0;max-width:100%}
+#app img,#app svg{max-width:100%}
+#app .btn{max-width:100%}
+#app .btn.small{white-space:normal;height:auto;min-height:44px;line-height:1.25;padding-top:8px;padding-bottom:8px;text-align:center}
 #app{max-width:480px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 16px) 20px calc(env(safe-area-inset-bottom) + 32px)}
 #app.enter{animation:enter .3s var(--ease)}
 @keyframes enter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
@@ -473,6 +480,26 @@ select.in{appearance:none;-webkit-appearance:none;background-image:url("data:ima
 .netbox{min-height:70vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:14px;padding:24px 8px}
 .netbox h1{font-size:24px}.netbox p{color:var(--mute);line-height:1.5;max-width:300px}
 .netbox .btn{width:auto;padding:0 26px}
+.launch{background:var(--card);border:1px solid var(--line);border-radius:var(--r-l);padding:18px 18px 8px}
+.launch h3{font-size:16px;margin-bottom:6px}
+.launch ol{list-style:none;margin:0;padding:0}
+.ls{display:flex;gap:12px;padding:12px 0;position:relative}
+.ls+.ls{border-top:1px solid var(--line)}
+.ls-n{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:14px;background:var(--blush);color:var(--red-d)}
+.ls-t{display:flex;flex-direction:column;gap:2px;min-width:0}
+.ls-t b{font-size:15px;line-height:1.3}
+.ls-t span{font-size:13px;line-height:1.45;color:var(--mute)}
+.ls.done .ls-n{background:var(--red);color:#fff}
+.ls.done .ls-t b{color:var(--mute)}
+.ls.now .ls-n{background:var(--red);color:#fff;box-shadow:0 0 0 4px var(--blush)}
+.ls.todo{opacity:.55}
+.waitcard{display:flex;gap:14px;align-items:flex-start;background:var(--blush);border:1px solid var(--blush-2);border-radius:var(--r-l);padding:16px}
+.waitcard .wc-ic{flex:none;width:42px;height:42px;border-radius:12px;background:#fff;color:var(--red);display:grid;place-items:center}
+.waitcard>span:last-child{display:flex;flex-direction:column;gap:4px;min-width:0}
+.waitcard b{font-size:16px}
+.waitcard span span{font-size:14px;line-height:1.5;color:var(--ink)}
+.nextline{display:flex;align-items:center;gap:8px;margin:10px 0 0;font-size:13px;font-weight:700;color:var(--red-d)}
+.nextline::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--red)}
 .barerr{margin:0 0 10px;text-align:center;background:#fff;border:1px solid var(--blush-2);border-radius:var(--r-s);padding:10px 12px;box-shadow:0 10px 24px -14px rgba(58,10,20,.4)}
 .toast{position:fixed;left:50%;width:max-content;top:calc(env(safe-area-inset-top) + 16px);transform:translateX(-50%);background:var(--burg);color:#fff;padding:12px 18px 12px 14px;border-radius:var(--r-m);font-weight:700;font-size:14px;z-index:40;max-width:90vw;display:flex;align-items:center;gap:8px;box-shadow:0 16px 30px -12px rgba(58,10,20,.6);animation:toastin .28s var(--ease)}
 @keyframes toastin{from{opacity:0;transform:translate(-50%,-10px)}to{opacity:1;transform:translate(-50%,0)}}
@@ -669,9 +696,30 @@ function avStack(ids){
   const shown = ids.slice(0,4), more = ids.length - shown.length;
   return '<span class="avs">' + shown.map(id => { const u = db.users[id]; return u ? avatar(u.avatar, 30) : ''; }).join('') + (more > 0 ? '<span class="avmore">+'+more+'</span>' : '') + '</span>';
 }
+function launchSteps(g, canDraw){
+  const n = g.members.length, enough = n >= 3;
+  const st = [
+    {t:'Соберите участников', d: enough ? n + ' ' + pl(n,'человек','человека','человек') + ' в группе. Звать можно и дальше, до жеребьёвки.' : 'Сейчас ' + n + ' из минимум 3. Отправьте приглашение кнопкой «Пригласить».', s: enough ? 'done' : 'now'},
+    {t:'Настройте правила', d: (g.exclude||[]).length ? 'Пар, которые не дарят друг другу: ' + g.exclude.length + '.' : 'По желанию. Например, чтобы супруги не дарили друг другу.', s: !enough ? 'todo' : (g.exclude||[]).length ? 'done' : 'opt'},
+    {t:'Проведите жеребьёвку', d: canDraw ? 'Всё готово. Кнопка внизу экрана.' : enough ? 'Правила слишком строгие, уберите часть пар.' : 'Станет доступна, когда в группе будет трое.', s: canDraw ? 'now' : 'todo'}
+  ];
+  return `<section class="launch" aria-label="Как запустить обмен"><h3>Как запустить обмен</h3><ol>${st.map((x,i) => `<li class="ls ${x.s}"><span class="ls-n">${x.s === 'done' ? ic('check',16) : i+1}</span><span class="ls-t"><b>${x.t}</b><span>${x.d}</span></span></li>`).join('')}</ol></section>`;
+}
+function waitCard(g){
+  return `<section class="waitcard"><span class="wc-ic">${ic('gift',22)}</span><span><b>Вы в группе</b><span>Ждём, пока организатор проведёт жеребьёвку. Тогда здесь появится тот, кому вы дарите подарок.</span></span></section>`;
+}
+function nextStep(g){
+  const id = myId(), n = g.members.length;
+  if (!g.drawn){
+    if (g.adminId === id) return n < 3 ? 'Пригласите ещё ' + (3 - n) + ' ' + pl(3 - n,'человека','человек','человек') : 'Можно проводить жеребьёвку';
+    return '';
+  }
+  if (g.assign && g.assign[id] && ((g.progress||{})[id] || 0) < 2) return 'Выберите и купите подарок';
+  return '';
+}
 function statusOf(g){
   if (g.drawn){ const lit = litCount(g); return '<span class="status done">'+ic('check',16)+(lit ? 'Куплено ' + lit + ' из ' + g.members.length : 'Жеребьёвка прошла')+'</span>'; }
-  return '<span class="status"><span class="dot"></span>Ждём участников</span>';
+  return '<span class="status"><span class="dot"></span>' + (g.members.length < 3 ? 'Ждём участников' : 'Ждём жеребьёвку') + '</span>';
 }
 function howLabel(u){ return u.method==='ship' ? ic('truck',16)+'Доставкой' : ic('hand',16)+'Лично'; }
 
@@ -1038,6 +1086,7 @@ function screenHome(){
               <p class="small muted" style="margin-top:4px">${g.members.length} ${pl(g.members.length,'участник','участника','участников')}${g.adminId===myId() ? ' · вы организатор' : ''}</p>${whenInfo(g) && whenInfo(g).left ? `<p class="small soonline">${ic('calendar',14)}Обмен ${whenInfo(g).left}</p>` : ''}</div>
             ${ic('chevron',22)}
           </div>
+          ${nextStep(g) ? `<p class="nextline">${nextStep(g)}</p>` : ''}
           <div class="gt-bot">${avStack(g.members)}${statusOf(g)}</div>
         </button>`).join('')}
     </div>
@@ -1317,6 +1366,8 @@ function screenGroup(){
   ${g.drawn && !isMember ? '<p class="muted" style="margin-bottom:24px">Жеребьёвка прошла. Вы организатор и в обмене не участвуете.</p>' : ''}
 
   ${showGroup ? `<div class="stack" style="--gap:28px">
+    ${!g.drawn && isAdmin ? launchSteps(g, canDraw) : ''}
+    ${!g.drawn && !isAdmin && isMember ? waitCard(g) : ''}
     ${!g.drawn ? `
     <div class="ticket">
       <div class="tk-top"><div class="small muted">Код группы</div><div class="code">${esc(g.code)}</div></div>
@@ -1346,7 +1397,6 @@ function screenGroup(){
         <button class="btn" data-a="askDraw" ${canDraw?'':'disabled'}>${ic('shuffle',20)}Провести жеребьёвку</button>
         ${!canDraw ? `<p class="hint center">${g.members.length < 3 ? 'Нужно минимум 3 участника, сейчас ' + g.members.length + '.' : 'С такими правилами жеребьёвка не получится. Уберите часть пар.'}</p>` : ''}
       </div>` : ''}
-    ${!g.drawn && !isAdmin ? '<p class="muted center">Ждём, пока организатор проведёт жеребьёвку. Результат появится здесь.</p>' : ''}
     ${!g.drawn && !isAdmin && isMember ? `<div class="center"><button class="link danger" data-a="askLeave">Выйти из группы</button></div>` : ''}
 
     ${TEST_MODE && isAdmin && !ui.viewAs ? `<details class="test" ${ui.testOpen?'open':''}>
@@ -1586,7 +1636,7 @@ const A = {
   closeRules(){ const to = ui.rulesBack || 'home'; ui.rulesBack = null; go(to); },
   donateLater(){ ui.donate = false; donateSnooze(14); renderLayer(); },
   donateGo(){ if (!DONATE_URL){ toast('Ссылка для доната пока не добавлена'); return; } ui.donate = false; donateSnooze(60); renderLayer(); if (tg && tg.openLink) tg.openLink(DONATE_URL); else window.open(DONATE_URL, '_blank', 'noopener,noreferrer'); },
-  reveal(){ const k = ui.groupId+':'+myId(); ui.revealed[k] = true; ui.swing = k; hap('ok'); render(); },
+  reveal(){ const k = ui.groupId+':'+myId(); ui.revealed[k] = true; ui.swing = k; hap('ok'); render(); setTimeout(() => { if (ui.swing === k) ui.swing = null; }, 1600); },
   sendImage(){
     const g = db.groups[ui.groupId], to = g && g.drawn && g.assign[myId()];
     if (!to) return;
@@ -1945,8 +1995,8 @@ const NET_ERR = {auth:'Не удалось подтвердить вход че�
   busy:'Сервер занят, попробуйте ещё раз.', profile:'Сначала заполните анкету.', agree:'Отметьте, что принимаете правила сервиса.', locked:'Данные закрыты, менять их больше нельзя',
   nocode:'Группа с таким кодом не найдена. Проверьте код.', drawn:'В этой группе жеребьёвка уже прошла.', full:'В группе уже 100 участников.', strict:'Не получилось: правила слишком строгие',
   few:'Нужно хотя бы трое участников.', limit:'Можно создать не больше 20 групп.', image:'Подойдёт картинка JPG, PNG или WebP.', invalid:'Проверьте данные и попробуйте ещё раз.',
-  nogroup:'Это действие сейчас недоступно.', bad:'Что-то пошло не так. Обновите приложение.', net:'Нет связи с сервером. Проверьте интернет.',
-  timeout:'Сервер слишком долго не отвечает.', answer:'Сервер ответил с ошибкой.', js:'Ошибка в приложении.'};
+  nogroup:'Это действие сейчас недоступно.', bad:'Что-то пошло не так. Обновите приложение.', net:'Нет связи с сервером. Проверьте интернет. Если включён VPN, выключите его или выберите другую страну.',
+  timeout:'Сервер слишком долго не отвечает. Если включён VPN, выключите его или выберите другую страну.', answer:'Сервер ответил с ошибкой.', js:'Ошибка в приложении.'};
 const netMsg = k => NET_ERR[k] || NET_ERR.bad;
 function tgInit(){ return (tg && typeof tg.initData === 'string') ? tg.initData : ''; }
 async function api(op, a){
