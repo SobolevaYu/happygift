@@ -19,13 +19,13 @@
 <meta name="happygift:bot" content="https://t.me/happygift_app_bot/app">
 <!-- Ссылка на страницу для донатов (обязательно начинается с https://) -->
 <meta name="happygift:donate" content="https://boosty.to/neurovibe/donate">
-<!-- Адрес сервера из Yandex Cloud, вида https://functions.yandexcloud.net/... Пока пусто, всё хранится только на одном телефоне -->
+<!-- Адрес сервера: ссылка на веб-приложение Google, вида https://script.google.com/macros/s/.../exec (или старый адрес Яндекса). Если пусто, всё хранится только на одном телефоне -->
 <meta name="happygift:server" content="https://script.google.com/macros/s/AKfycbzvrkp7RMK7wPVs0CvcYl_oXCgzGO5dKHo46c-Q1MnIBUa6oOykElQR2VuKF8dIOsJQlw/exec">
 <!-- Режим проверки с тестовыми участниками: on или off. Когда вписан адрес сервера, он выключается сам -->
 <meta name="happygift:test" content="off">
 <!-- ================= Ниже ничего не менять: приложение защищено от изменений и перестанет запускаться ================= -->
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Q3j4/6w+pk7/I70YwbmlsUzEYjb5vRCMexvX5pT0Cqs=' https://telegram.org; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data:; connect-src https://functions.yandexcloud.net https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-W6aP59Eiyl7rKfiBwAgmhC2B0uq33o0Go74wG44utko=' https://telegram.org; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data:; connect-src https://functions.yandexcloud.net https://script.google.com https://script.googleusercontent.com; base-uri 'none'; form-action 'none'; object-src 'none'">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Unbounded:wght@700&display=swap&subset=cyrillic" rel="stylesheet">
@@ -561,7 +561,22 @@ const DONATE_KEY = 'happygift_donate_until';
 /* ============ TELEGRAM ============ */
 const tg = (window.Telegram && Telegram.WebApp && Telegram.WebApp.initData !== undefined) ? Telegram.WebApp : null;
 if (tg) { try { tg.ready(); tg.expand(); tg.setHeaderColor('#4A0614'); tg.setBackgroundColor('#4A0614'); } catch(e){} }
-const tgUser = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && Number.isSafeInteger(tg.initDataUnsafe.user.id) && tg.initDataUnsafe.user.id > 0) ? tg.initDataUnsafe.user : null;
+// Запасной путь: Telegram кладёт данные входа и в адрес страницы. Это выручает, если скрипт telegram.org не загрузился (блокировка сети, VPN, расширения)
+const HASH_INIT = (function(){
+  try { const d = new URLSearchParams(location.hash.slice(1)).get('tgWebAppData'); if (d) return d; } catch(e){}
+  try { const o = JSON.parse(sessionStorage.getItem('__telegram__initParams') || 'null'); if (o && typeof o.tgWebAppData === 'string') return o.tgWebAppData; } catch(e){}
+  return '';
+})();
+const hashUser = (function(){
+  if (!HASH_INIT) return null;
+  try { const u = JSON.parse(new URLSearchParams(HASH_INIT).get('user') || ''); return (u && Number.isSafeInteger(u.id) && u.id > 0) ? u : null; } catch(e){ return null; }
+})();
+function startParam(){
+  const sp0 = tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param;
+  if (sp0) return sp0;
+  try { return HASH_INIT ? (new URLSearchParams(HASH_INIT).get('start_param') || '') : ''; } catch(e){ return ''; }
+}
+const tgUser = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && Number.isSafeInteger(tg.initDataUnsafe.user.id) && tg.initDataUnsafe.user.id > 0) ? tg.initDataUnsafe.user : hashUser;
 
 /* ============ АВАТАРКИ (временные, позже заменим на ваши) ============ */
 const AV = {
@@ -1073,6 +1088,7 @@ function screenOnboard(){
       <input type="checkbox" id="f-agree" data-c="agree" ${d.agree?'checked':''}>
       <span><label for="f-agree"><b>Я принимаю правила сервиса</b></label><br><span class="small muted">Создатель приложения не отвечает за доставку и выдачу посылок.</span><br><button type="button" class="link" data-a="openRules" style="margin-top:6px">Читать правила</button></span>
     </div>`}
+    ${editing && SRV ? `<div class="center" style="margin-top:8px"><button type="button" class="link danger" data-a="askWipe">Удалить мои данные</button></div>` : ''}
   </div>
   <div class="bar">${ui.error ? `<p class="err barerr" role="alert">${esc(ui.error)}</p>` : ''}${locked ? '<button class="btn" data-a="go" data-to="home">Вернуться</button>' : `<button class="btn" data-a="saveProfile">${editing ? 'Сохранить' : 'Продолжить'}</button>`}</div>`;
 }
@@ -1278,7 +1294,8 @@ function parcelNotice(g){
     ${when && !p.requested ? `<p class="small muted">Штрихкод обновлён ${when}</p>` : ''}
     ${u && u.method==='ship' ? `<p class="small row" style="gap:8px;align-items:flex-start"><span style="color:var(--red);margin-top:2px">${ic('pin',18)}</span><span>Заберите в пункте: <b>${esc(u.pvzName||'')}</b>, ${esc(u.addr||'')}</span></p>` : ''}
     ${p.requested ? '' : `<div class="stack" style="--gap:4px"><div><button class="btn small ghost" data-a="zoom">Открыть на весь экран</button></div>
-    <button class="link" data-a="requestNew" style="text-align:left">Срок истёк? Попросить новый штрихкод</button></div>`}
+    <button class="link" data-a="requestNew" style="text-align:left">Срок истёк? Попросить новый штрихкод</button>
+    ${SRV ? '<button class="link" data-a="askGot" style="text-align:left">Я забрал подарок, удалить код с сервера</button>' : ''}</div>`}
   </div>`;
 }
 
@@ -2072,10 +2089,12 @@ const NET_ERR = {auth:'Не удалось подтвердить вход че�
   busy:'Сервер занят, попробуйте ещё раз.', profile:'Сначала заполните анкету.', agree:'Отметьте, что принимаете правила сервиса.', locked:'Данные закрыты, менять их больше нельзя',
   nocode:'Группа с таким кодом не найдена. Проверьте код.', drawn:'В этой группе жеребьёвка уже прошла.', full:'В группе уже 100 участников.', strict:'Не получилось: правила слишком строгие',
   few:'Нужно хотя бы трое участников.', limit:'Можно создать не больше 20 групп.', image:'Подойдёт картинка JPG, PNG или WebP.', invalid:'Проверьте данные и попробуйте ещё раз.',
+  admin:'Вы организатор группы. Сначала передайте группу другому человеку или удалите её.', inplay:'Вы участвуете в обмене, который уже идёт. Попросите организатора отменить жеребьёвку, тогда данные можно будет удалить.',
+  tries:'Слишком много неверных кодов. Попробуйте через час.',
   nogroup:'Это действие сейчас недоступно.', wait:'Так часто нельзя. Попробуйте позже.', bad:'Что-то пошло не так. Обновите приложение.', net:'Нет связи с сервером. Проверьте интернет. Если включён VPN, выключите его или выберите другую страну.',
   timeout:'Сервер слишком долго не отвечает. Если включён VPN, выключите его или выберите другую страну.', answer:'Сервер ответил с ошибкой.', js:'Ошибка в приложении.'};
 const netMsg = k => NET_ERR[k] || NET_ERR.bad;
-function tgInit(){ return (tg && typeof tg.initData === 'string') ? tg.initData : ''; }
+function tgInit(){ return ((tg && typeof tg.initData === 'string') ? tg.initData : '') || HASH_INIT; }
 async function api(op, a){
   const pv = {};
   Object.keys(net.imgs).forEach(k => { const i = k.indexOf(':'), gid = k.slice(0, i), key = k.slice(i + 1); (pv[gid] = pv[gid] || {})[key] = net.imgs[k].v; });
@@ -2149,7 +2168,7 @@ function queueSeen(){
 }
 function netScreen(){
   if (net.state === 'loading') return `<div class="netbox"><span class="spin"></span><p>Загружаем ваши группы</p></div>`;
-  if (net.state === 'needtg') return `<div class="netbox"><span class="brand-ic" style="width:56px;height:56px;border-radius:16px;display:grid;place-items:center;background:var(--red);color:#fff">${ic('gift',30)}</span><h1>Откройте HappyGift в Telegram</h1><p>Приложение работает внутри Telegram. Так мы точно знаем, что это вы, и бережём данные участников.</p>${BOT_LINK ? `<button class="btn" data-a="openBot">Открыть в Telegram</button>` : ''}</div>`;
+  if (net.state === 'needtg') return `<div class="netbox"><span class="brand-ic" style="width:56px;height:56px;border-radius:16px;display:grid;place-items:center;background:var(--red);color:#fff">${ic('gift',30)}</span><h1>Откройте HappyGift в Telegram</h1><p>Приложение работает внутри Telegram. Так мы точно знаем, что это вы, и бережём данные участников.</p><p class="small">Что помогает: откройте бота в Telegram и нажмите кнопку «Открыть» или «HappyGift» внизу, а не ссылку из браузера. Обновите Telegram до последней версии. Выключите VPN и блокировщики рекламы.</p>${BOT_LINK ? `<button class="btn" data-a="openBot">Открыть в Telegram</button>` : ''}<button class="link" data-a="reloadPage">Обновить страницу</button><p class="small" style="opacity:.7">Код для проверки: ${!window.Telegram ? 'нет скрипта Telegram' : (!(window.Telegram.WebApp && window.Telegram.WebApp.initData) ? 'нет данных входа' : 'нет номера пользователя')}</p></div>`;
   return `<div class="netbox"><h1>Не получилось загрузить</h1><p>${esc(netMsg(net.err))}</p><button class="btn" data-a="retrySync">Попробовать ещё раз</button><p class="small" style="opacity:.7">Код для разработчика: ${esc(net.err || '?')}${net.detail ? ' · ' + esc(net.detail) : ''}</p></div>`;
 }
 async function firstSync(){
@@ -2167,6 +2186,7 @@ async function firstSync(){
 window.addEventListener('error', e => { if (SRV && net.state === 'loading'){ net.state = 'error'; net.err = 'js'; net.detail = String(e && e.message || '').slice(0, 80); try { render(); } catch(_){} } });
 if (SRV){
   A.retrySync = () => firstSync();
+  A.reloadPage = () => { location.reload(); };
   A.openBot = () => { if (BOT_LINK) window.open(BOT_LINK, '_blank', 'noopener,noreferrer'); };
   joinGroup = async function(code){
     code = cleanCode(code);
@@ -2237,6 +2257,12 @@ if (SRV){
   };
   A.notesOff = () => { const u = db.users[db.meId]; if (u) u.wa = false; send('wa', {on:false}); render(); toast('Уведомления выключены'); };
   A.notesLater = () => { ui.notesHide = true; render(); };
+
+  A.askWipe = () => { ui.modal = {title:'Удалить мои данные?', text:'Анкета удалится с сервера, вы выйдете из всех групп. Вернуть данные нельзя, но можно зарегистрироваться заново. Если вы организатор группы или участвуете в уже начатом обмене, сначала нужно закрыть эти дела.', ok:'confirmWipe', okLabel:'Удалить'}; renderLayer(); };
+  A.confirmWipe = async () => { ui.modal = null; renderLayer(); const j = await call('wipe', {}); if (j){ ui.draft = {}; ui.groupId = null; go('welcome'); toast('Данные удалены'); } };
+
+  A.askGot = () => { ui.modal = {title:'Подарок уже у вас?', text:'Штрихкод навсегда удалится с сервера, это безопаснее. Если подарок ещё не забрали, лучше подождать.', ok:'confirmGot', okLabel:'Да, забрал'}; renderLayer(); };
+  A.confirmGot = async () => { const g = G(); ui.modal = null; renderLayer(); if (!g) return; const j = await call('got', {g:g.id}); if (j) toast('Код удалён'); };
   // Остальные действия сразу видны на экране, а сервер подтверждает их в фоне
   const wrap = (name, before, after) => { const f = A[name]; A[name] = function(el){ const b = before(el); f.call(A, el); after(b, el); }; };
   const G = () => db.groups[ui.groupId];
@@ -2261,7 +2287,7 @@ if (SRV){
 /* ============ СТАРТ ============ */
 (function init(){
   if (SRV){
-    const sp = tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param;
+    const sp = startParam();
     ui.startCode = (sp && sp.indexOf('join_') === 0) ? sp.slice(5) : null;
     if (!tgUser || !tgInit()){ net.state = 'needtg'; render(); }
     else firstSync();
@@ -2271,7 +2297,7 @@ if (SRV){
   if (!db.users[db.meId] && tgUser){
     ui.draft = {name: [tgUser.first_name].filter(Boolean).join(' ')};
   }
-  const sp = tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param;
+  const sp = startParam();
   const code = (sp && sp.indexOf('join_')===0) ? sp.slice(5) : new URLSearchParams(location.search).get('join');
   if (code){
     if (db.users[db.meId]) joinGroup(code);
